@@ -2,11 +2,11 @@
 
 [![Python Lint](https://github.com/greyinghair/template_python/actions/workflows/python-lint.yaml/badge.svg?branch=main)](https://github.com/greyinghair/template_python/actions/workflows/python-lint.yaml)
 
-TCP Tests
-=========
+# TCP Tests
 
 Long Lived Connections (LLC) & Short Lived connections (SLC)
 
+![vpc_ec2](./img/vpc.png)
 
 All test will be from Client-1 to Server-1, Client-2 to Server-2 etc
 
@@ -18,30 +18,31 @@ Each server listens on 2 x ports.  1 port for Short Lived Connections and the 3n
 | Short Lived	| 54321	| n/a | Every 1 sec |
 
 
-Prerequisites
+## Prerequisites
 
-    IAM role (same role as used for SSM) permissions: [PutMetricData,  CreateLogGroup, CreateLogStream, PutLogEvents, DescribeLogStreams]
+IAM role (same role as used for SSM) permissions: [PutMetricData,  CreateLogGroup, CreateLogStream, PutLogEvents, DescribeLogStreams]
 
-     role inline attached policy: <iam_inline_role.yml>
-     role attached AWS managed policy: "AmazonSSMManagedInstanceCore"
-     Trust Relationships: <iam_trust_relationship.yml>
-
-
-Logging
+role inline attached policy: [inline_policy](./iam/iam_inline_role.yml>) </br>
+role attached AWS managed policy: "AmazonSSMManagedInstanceCore" </br>
+Trust Relationships: [trust_relationship](./iam/iam_trust_relationship
+.yml)
 
 
-    - Client Local Logging : Info level logging is sent to /var/log/tcp_client.log
-    - Cloudwatch Logging
+## Logging
 
 
-Server
+* Client Local Logging : Info level logging is sent to /var/log/tcp_client.log
+* Cloudwatch Logging
+
+
+# Server Setup
 
 Create tcp_server.py in /opt/scripts containing code:
 ```
 sudo mkdir /opt/scripts && sudo nano /opt/scripts/tcp_server.py
 ```
 
-<tcp_server.py>
+[tcp_server.py](./tcp_server.py)
 
 Setup service to run on boot:
 ```sudo nano /etc/systemd/system/tcpserver.service```
@@ -67,13 +68,13 @@ Verify service is listening on both ports: ```netstat -ltn```
 Check Logs for service: ```sudo journalctl -u tcpserver```
 
 
-Client
+# Client Setup
 
 Install client pre-req: ```sudo yum install pip -y && sudo pip3 install boto3 watchtower```
 
 Create tcp_client.py in /opt/scripts containing code: ```sudo mkdir /opt/scripts && sudo nano /opt/scripts/tcp_client.py```
 
-<tcp_client.py>
+[tcp_client.py](./tcp_client.py)
 
 Setup client tests to ruin as a service: ```sudo nano /etc/systemd/system/tcpclient.service```
 
