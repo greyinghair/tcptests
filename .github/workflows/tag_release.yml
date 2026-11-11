@@ -1,36 +1,45 @@
-name: Bump version
+name: Publish release
+
 on:
-  push:
-    branches:
-      - main
-      - master
-    paths:
-      - '**.py'
-      - '**.tf'
-      
-      
+  workflow_run:
+    workflows: [Python CI]
+    branches: [main]
+    types: [completed]
+
+permissions:
+  contents: read
+
 concurrency:
-  group: 'publish-release'
+  group: publish-release
   cancel-in-progress: false
-      
-      
+
 jobs:
-  build:
+  release:
+    if: >-
+      github.event.workflow_run.conclusion == 'success' &&
+      github.event.workflow_run.event == 'push' &&
+      github.event.workflow_run.head_repository.full_name == github.repository
     runs-on: ubuntu-latest
-    
+    permissions:
+      contents: write
+    env:
+      HEAD_SHA: ${{ github.event.workflow_run.head_sha }}
+      GH_TOKEN: ${{ github.token }}
+      GH_REPO: ${{ github.repository }}
     steps:
-      
-      - uses: actions/checkout@v4
-      
-      - name: Bump version and push tag
-        id: tag_version
-        uses: mathieudutour/github-tag-action@v6.2
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
-          github_token: ${{ secrets.GITHUB_TOKEN }}
-      
-      - name: Create a GitHub release
-        uses: ncipollo/release-action@v1
-        with:
-          tag: ${{ steps.tag_version.outputs.new_tag }}
-          name: Release ${{ steps.tag_version.outputs.new_tag }}
-          body: ${{ steps.tag_version.outputs.changelog }}
+          ref: ${{ github.event.workflow_run.head_sha }}
+          persist-credentials: false
+      - name: Publish version after successful CI
+        shell: bash
+        run: |
+          VERSION=$(cat VERSION)
+          [[ "$VERSION" =~ ^[0-9]+\.[0-9]+\.[0-9]+$ ]]
+          TAG="v$VERSION"
+          if gh release view "$TAG" >/dev/null 2>&1; then
+            echo "Release $TAG already exists."
+          else
+            gh release create "$TAG" --target "$HEAD_SHA" \
+              --title "Release $TAG" --generate-notes
+          fi
