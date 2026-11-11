@@ -4,6 +4,10 @@ updates:
     directory: /
     schedule:
       interval: weekly
+    # Botocore requires python-dateutil <3. Review when upgrading Botocore.
+    ignore:
+      - dependency-name: python-dateutil
+        versions: ['>=3.0.0']
     groups:
       python-dependencies:
         patterns: ['*']
