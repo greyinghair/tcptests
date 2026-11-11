@@ -1,64 +1,41 @@
-# This is a basic workflow to help you get started with Actions
+name: Python CI
 
-name: Python Lint
-
-# Controls when the workflow will run
 on:
-  # Triggers the workflow on push or pull request events but only for the "main" branch
   push:
-    branches: 
-    - main
-    - release/*
+    branches: [main, 'release/*']
   pull_request:
-    branches: 
-    - main
-  # Set your workflow to run every day of the week from Monday to Friday at 2:00 UTC
+    branches: [main]
   schedule:
-  - cron: "0 2 * * 1-5"
-     
-  # Allows you to run this workflow manually from the Actions tab
+    - cron: '0 2 * * 1'
   workflow_dispatch:
 
-# A workflow run is made up of one or more jobs that can run sequentially or in parallel
+permissions:
+  contents: read
+
 jobs:
-  # This workflow contains a single job called "build"
   build:
-    # The type of runner that the job will run on
     runs-on: ubuntu-latest
-
-    # Steps represent a sequence of tasks that will be executed as part of the job
+    strategy:
+      matrix:
+        python-version: ['3.10', '3.14']
     steps:
-      # Checks-out your repository under $GITHUB_WORKSPACE, so your job can access it
-      - uses: actions/checkout@v3
-
-      # uses: ricardochaves/python-lint@32032eca67291cd71f88d79e61bc4b904ee03265
-      - name: Python Code Quality and Lint
-      # You may pin to the exact commit or the version.
-        uses: ricardochaves/python-lint@v1.3.0
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
-          # A list of all paths to test
-          python-root-list: # optional, default is .
-          # Use Pylint
-          use-pylint: # optional, default is true
-          # Use pycodestyle
-          use-pycodestyle: # optional, default is true
-          # Use Flake8
-          use-flake8: # optional, default is true
-          # Use Black
-          use-black: # optional, default is true
-          # Use mypy
-          use-mypy: # optional, default is true
-          # Use isort
-          use-isort: # optional, default is true
-          # Extra options: pylint $(extra-pylint-options) $(python-root-list)
-          extra-pylint-options: # optional, default is 
-          # Extra options: pycodestyle $(extra-pycodestyle-options) $(python-root-list)
-          extra-pycodestyle-options: # optional, default is 
-          # Extra options: flake8 $(extra-flake8-options) $(python-root-list)
-          extra-flake8-options: # optional, default is 
-          # Extra options: black --check $(extra-black-options) $(python-root-list)
-          extra-black-options: # optional, default is 
-          # Extra options: mypy $(extra-mypy-options) $(python-root-list)
-          extra-mypy-options: # optional, default is 
-          # Extra options: isort -rc $(extra-isort-options) $(python-root-list) -c --diff 
-          extra-isort-options: # optional, default is 
+          persist-credentials: false
+      - uses: actions/setup-python@6d4fd22b20465ccc0f7354476588e8df7c9ca0e0 # v7.1.0
+        with:
+          python-version: ${{ matrix.python-version }}
+          cache: pip
+      - name: Install dependencies
+        run: python -m pip install -r requirements-dev.txt
+      - name: Check dependency compatibility
+        run: python -m pip check
+      - name: Lint and format
+        run: |
+          ruff check .
+          ruff format --check .
+      - name: Run tests
+        run: python -m unittest discover -s tests -v
+      - name: Audit runtime dependencies
+        if: matrix.python-version == '3.14'
+        run: pip-audit -r requirements.txt
